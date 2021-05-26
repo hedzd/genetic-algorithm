@@ -16,6 +16,7 @@ class GeneticAlgorithm:
         self.sum_fitness = 0
         self.chance_of_mutation = 0.2
         self.new_population = []
+        self.generations = []
 
     def initial_population(self):
         actions = ['0', '0', '0', '0', '0', '1', '2']
@@ -62,18 +63,38 @@ class GeneticAlgorithm:
         if select_randomly:
             weights = []
             for i in self.chromosomes:
-                weights.append(i.fitness/self.sum_fitness)
-            selected = random.choices(self.chromosomes, weights=weights, k=int(self.population_size/2))
+                weights.append(i.fitness / self.sum_fitness)
+            selected = random.choices(self.chromosomes, weights=weights, k=int(self.population_size))
         else:
             selected = self.chromosomes[0:int(self.population_size / 2)]
-
+            selected.extend(selected)
         # for i in selected:
         #     print(i.fitness)
 
         return selected
 
-    def crossover(self):
-        return
+    def crossover(self, selected, one_point):
+        new_population = []
+        for i, x in enumerate(selected[::2]):
+            y = selected[i + 1]
+            string1_list = list(x.actions)
+            string2_list = list(y.actions)
+            point1 = random.randint(0, len(x.actions) - 2)
+            if one_point:
+                child_str1 = "".join(string1_list[:point1] + string2_list[point1:])
+                child_str2 = "".join(string2_list[:point1] + string1_list[point1:])
+            else:
+                point2 = random.randint(0, len(x.actions) - 2)
+                while point2 == point1:
+                    point2 = random.randint(0, len(x.actions) - 2)
+                child_str1 = "".join(string1_list[:point1] + string2_list[point1:point2] + string1_list[point2:])
+                child_str2 = "".join(string2_list[:point1] + string1_list[point1:point2] + string2_list[point2:])
+            # print("parent1: " + x.actions + " parent2: " + y.actions +"   "+ child_str1 + "  " + child_str2)
+            child1 = Chromosome(child_str1)
+            child2 = Chromosome(child_str2)
+            new_population.append(child1)
+            new_population.append(child2)
+        return new_population
 
     def mutation(self):
         # for i in self.new_population:
@@ -98,10 +119,44 @@ class GeneticAlgorithm:
         # for i in self.new_population:
         #     print(i.actions, end=" ")
 
-    def run_algorithm(self):
+    def mean_fitness_difference(self, num_generations, epsilon):
+        curr_mean = self.sum_fitness/self.population_size
+        total_num = len(self.generations)
+        for g in reversed(self.generations[total_num-num_generations:-1]):
+            sum = 0
+            for chromosome in g:
+                print(chromosome.actions)
+                sum += chromosome.fitness
+            g_mean = sum/self.population_size
+            print(curr_mean)
+            print(g_mean)
+            print(curr_mean - g_mean)
+            if curr_mean - g_mean > epsilon:
+                return False
+        return True
+
+    def run_algorithm(self, select_randomly, one_point_crossover):
         self.initial_population()
-        self.evaluate_all()
-        self.mutation()
+        self.generations.append(self.chromosomes)
+        print("Initial population: ", end=" ")
+        for i in self.chromosomes:
+            print(i.actions, end=" ")
+        print()
+        for i in range(50):
+            self.evaluate_all()
+            if self.mean_fitness_difference(5, 0.000001):
+                break
+            selected = self.selection(select_randomly)
+            self.chromosomes = self.crossover(selected, one_point_crossover)
+            self.mutation()
+            self.generations.append(self.chromosomes)
+
+            print(str(i + 1) + "th iteration population: ", end=" ")
+            for i in self.chromosomes:
+                print(i.actions, end=" ")
+            print()
+
+
 
 
 class Game:
@@ -120,11 +175,8 @@ class Game:
 if __name__ == '__main__':
     g = Game(["____G__L__", "___G_M___L_"])
     # g.load_next_level()
-    # This outputs (False, 4)
     # print(g.current_level_len)
     # print(g.levels[g.current_level_index])
-    # print(g.get_score("0000000000"))
-    ai_agent = GeneticAlgorithm(g.levels[g.current_level_index], 20)
-    ai_agent.initial_population()
-    ai_agent.selection(False)
-    ai_agent.mutation()
+
+    ai_agent = GeneticAlgorithm(g.levels[g.current_level_index], 5)
+    ai_agent.run_algorithm(False, True)
