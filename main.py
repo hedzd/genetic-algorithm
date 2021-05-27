@@ -170,7 +170,7 @@ class GeneticAlgorithm:
             self.mutation(mutation_probability)
             self.evaluate_all()
             self.generations.append(self.chromosomes)
-            print(str(i + 1) + "th iteration population: ", end=" ")
+            print(str(i + 1) + "th generation population: ", end=" ")
             for i in self.chromosomes:
                 print(i.actions, end=" ")
             print()
