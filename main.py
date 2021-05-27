@@ -1,4 +1,6 @@
 import random
+from matplotlib import pyplot as plt
+import matplotlib.ticker as mticker
 
 
 class Chromosome:
@@ -9,14 +11,16 @@ class Chromosome:
 
 
 class GeneticAlgorithm:
-    def __init__(self, level, population_size):
+    def __init__(self, level, population_size, calc_win_score):
         self.level = level
         self.chromosomes = []
         self.population_size = population_size
+        self.calc_win_score = calc_win_score
         self.sum_fitness = 0
         self.chance_of_mutation = 0.2
         self.new_population = []
         self.generations = []
+        self.generations_mean_fitness = []
 
     def initial_population(self):
         actions = ['0', '0', '0', '0', '0', '1', '2']
@@ -46,28 +50,33 @@ class GeneticAlgorithm:
                 steps += 1
             else:
                 break
-        if steps == len(current_level) - 1:
-            score = steps + 5
+        if self.calc_win_score:
+            if steps == len(current_level) - 1:
+                score = steps + 5
+            else:
+                score = steps
         else:
             score = steps
         return steps == len(current_level) - 1, score
 
     def evaluate_all(self):
+        self.sum_fitness = 0
         for i in self.chromosomes:
             win, score = self.evaluation(i.actions)
             self.sum_fitness += score
             i.fitness = score
         self.chromosomes.sort(reverse=True, key=lambda x: x.fitness)
+        self.generations_mean_fitness.append(self.sum_fitness / self.population_size)
 
-    def selection(self, select_randomly):
-        if select_randomly:
+    def selection(self, choose_bests_only):
+        if choose_bests_only:
+            selected = self.chromosomes[0:int(self.population_size / 2)]
+            selected.extend(selected)
+        else:
             weights = []
             for i in self.chromosomes:
                 weights.append(i.fitness / self.sum_fitness)
             selected = random.choices(self.chromosomes, weights=weights, k=int(self.population_size))
-        else:
-            selected = self.chromosomes[0:int(self.population_size / 2)]
-            selected.extend(selected)
         # for i in selected:
         #     print(i.fitness)
 
@@ -96,13 +105,13 @@ class GeneticAlgorithm:
             new_population.append(child2)
         return new_population
 
-    def mutation(self):
+    def mutation(self, mutation_probability):
         # for i in self.new_population:
         #     print(i.actions, end=" ")
         # print()
         for i in self.new_population:
-            if random.random() < 0.2:
-                new_value = random.choices(['0', '1', '2'], weights=[0.8, 0.1, 0.1], k=1)
+            if random.random() < mutation_probability:
+                new_value = random.choices(['0', '1', '2'], weights=[0.7, 0.2, 0.1], k=1)
                 selected_char = random.randint(0, len(i.actions) - 1)
                 string_list = list(i.actions)
                 while string_list[selected_char] == new_value[0]:
@@ -120,43 +129,51 @@ class GeneticAlgorithm:
         #     print(i.actions, end=" ")
 
     def mean_fitness_difference(self, num_generations, epsilon):
-        curr_mean = self.sum_fitness/self.population_size
-        total_num = len(self.generations)
-        for g in reversed(self.generations[total_num-num_generations:-1]):
-            sum = 0
-            for chromosome in g:
-                print(chromosome.actions)
-                sum += chromosome.fitness
-            g_mean = sum/self.population_size
-            print(curr_mean)
-            print(g_mean)
-            print(curr_mean - g_mean)
-            if curr_mean - g_mean > epsilon:
+        if num_generations > len(self.generations):
+            return False
+        curr_mean = self.sum_fitness / self.population_size
+        latest_generations = self.generations[-num_generations:]
+        # print(latest_generations)
+        if len(self.generations) == 1:
+            return False
+        for generation in reversed(latest_generations):
+            sumFitness = 0
+            for chromosome in generation:
+                # print(chromosome.actions)
+                sumFitness += chromosome.fitness
+            g_mean = sumFitness / self.population_size
+
+            # print(curr_mean)
+            # print(g_mean)
+            # print(curr_mean - g_mean)
+            diff = curr_mean - g_mean
+            if diff < 0:
+                return False
+            if diff > epsilon:
                 return False
         return True
 
-    def run_algorithm(self, select_randomly, one_point_crossover):
+    def run_algorithm(self, choose_bests_only, one_point_crossover, epsilon, mutation_probability):
         self.initial_population()
         self.generations.append(self.chromosomes)
+        loop_range = 20
         print("Initial population: ", end=" ")
         for i in self.chromosomes:
             print(i.actions, end=" ")
         print()
-        for i in range(50):
-            self.evaluate_all()
-            if self.mean_fitness_difference(5, 0.000001):
-                break
-            selected = self.selection(select_randomly)
+        self.evaluate_all()
+        for i in range(loop_range):
+            if self.mean_fitness_difference(15, epsilon):
+                return
+            selected = self.selection(choose_bests_only)
             self.chromosomes = self.crossover(selected, one_point_crossover)
-            self.mutation()
+            self.mutation(mutation_probability)
+            self.evaluate_all()
             self.generations.append(self.chromosomes)
-
             print(str(i + 1) + "th iteration population: ", end=" ")
             for i in self.chromosomes:
                 print(i.actions, end=" ")
             print()
-
-
 
 
 class Game:
@@ -172,11 +189,52 @@ class Game:
         self.current_level_len = len(self.levels[self.current_level_index])
 
 
+def plot_generations(ai_agent):
+    generations = ai_agent.generations
+    generations_num = list(range(0, len(generations)))
+    mins = []
+    maxs = []
+    mean = ai_agent.generations_mean_fitness
+    for i in generations:
+        mins.append(i[-1].fitness)
+        maxs.append(i[0].fitness)
+
+    # print(generations_num)
+    # print(mean)
+    # print(mins)
+    # print(maxs)
+
+    # fig, axs = plt.subplots(1, figsize=(12, 5))
+    fig = plt.figure()
+    ax = fig.add_subplot(1, 1, 1)
+    ax.plot(generations_num, mean, 'b+', alpha =0.7, label='mean')
+    ax.plot(generations_num, mins, 'rx', alpha =0.7, label='min')
+    ax.plot(generations_num, maxs, 'go', alpha =0.4, label='max')
+    ax.set_title('Result of the algorithm')
+    ax.legend(loc=4)
+    ax.set_ylabel('fitness score')
+    ax.set_xlabel('Generation number')
+    plt.gca().xaxis.set_major_locator(mticker.MultipleLocator(2))
+    plt.show()
+
+
 if __name__ == '__main__':
     g = Game(["____G__L__", "___G_M___L_"])
     # g.load_next_level()
     # print(g.current_level_len)
     # print(g.levels[g.current_level_index])
 
-    ai_agent = GeneticAlgorithm(g.levels[g.current_level_index], 5)
-    ai_agent.run_algorithm(False, True)
+    # Set these values differently to see different outcomes
+    population_size = 50
+    calc_win_score = True
+    choose_bests_only = True
+    one_point_crossover = True
+    diff_epsilon = 0.001
+    mutation_probability = 0.1
+
+    ai_agent = GeneticAlgorithm(g.levels[g.current_level_index], population_size, calc_win_score)
+    ai_agent.run_algorithm(choose_bests_only, one_point_crossover, diff_epsilon, mutation_probability)
+    plot_generations(ai_agent)
+
+
+
