@@ -170,7 +170,7 @@ class GeneticAlgorithm:
         # print()
         for i in self.new_population:
             if random.random() < mutation_probability:
-                new_value = random.choices(['0', '1', '2'], weights=[0.7, 0.2, 0.1], k=1)
+                new_value = random.choices(['0', '1', '2'], weights=[0.4, 0.2, 0.2], k=1)
                 selected_char = random.randint(0, len(i.actions) - 1)
                 string_list = list(i.actions)
                 while string_list[selected_char] == new_value[0]:
@@ -215,7 +215,7 @@ class GeneticAlgorithm:
     def run_algorithm(self, choose_bests_only, one_point_crossover, epsilon, mutation_probability):
         self.initial_population()
         self.generations.append(self.chromosomes)
-        loop_range = 20
+        loop_range = 40
         print("Initial population: ", end=" ")
         for i in self.chromosomes:
             print(i.actions, end=" ")
@@ -223,7 +223,7 @@ class GeneticAlgorithm:
         self.evaluate_all()
         for i in range(loop_range):
             if self.mean_fitness_difference(15, epsilon):
-                return
+                return self.generations, self.generations_mean_fitness
             selected = self.selection(choose_bests_only)
             self.chromosomes = self.crossover(selected, one_point_crossover)
             self.mutation(mutation_probability)
@@ -233,7 +233,7 @@ class GeneticAlgorithm:
             for i in self.chromosomes:
                 print(i.actions, end=" ")
             print()
-
+        return self.generations, self.generations_mean_fitness
 
 class Game:
     def __init__(self, levels):
@@ -248,13 +248,12 @@ class Game:
         self.current_level_len = len(self.levels[self.current_level_index])
 
 
-def plot_generations(ai_agent):
-    generations = ai_agent.generations
-    generations_num = list(range(0, len(generations)))
+def plot_generations(generations1, generations_mean_fitness1, generations2, generations_mean_fitness2):
+    generations_num = list(range(0, len(generations1)))
     mins = []
     maxs = []
-    mean = ai_agent.generations_mean_fitness
-    for i in generations:
+    mean = generations_mean_fitness1
+    for i in generations1:
         mins.append(i[-1].fitness)
         maxs.append(i[0].fitness)
 
@@ -264,15 +263,33 @@ def plot_generations(ai_agent):
         # print(maxs)
 
         # fig, axs = plt.subplots(1, figsize=(12, 5))
-    fig = plt.figure()
-    ax = fig.add_subplot(1, 1, 1)
-    ax.plot(generations_num, mean, 'b+', alpha=0.7, label='mean')
-    ax.plot(generations_num, mins, 'rx', alpha=0.7, label='min')
-    ax.plot(generations_num, maxs, 'go', alpha=0.4, label='max')
-    ax.set_title('Result of the algorithm')
-    ax.legend(loc=4)
-    ax.set_ylabel('fitness score')
-    ax.set_xlabel('Generation number')
+    fig, axs = plt.subplots(2, gridspec_kw={'hspace': 0.5, 'wspace': 10}, figsize=(15,15))
+    # fig = plt.figure()
+    # axs[0] = fig.add_subplot(1, 1, 1)
+    axs[0].plot(generations_num, mean, 'b+', alpha=0.7, label='mean')
+    axs[0].plot(generations_num, mins, 'rx', alpha=0.7, label='min')
+    axs[0].plot(generations_num, maxs, 'go', alpha=0.4, label='max')
+    axs[0].set_title('Result of the algorithm for easy level')
+    axs[0].legend(loc=4)
+    axs[0].set_ylabel('fitness score')
+    axs[0].set_xlabel('Generation number')
+    plt.gca().xaxis.set_major_locator(mticker.MultipleLocator(2))
+    generations_num = list(range(0, len(generations2)))
+    mins = []
+    maxs = []
+    mean = generations_mean_fitness2
+    for i in generations2:
+        mins.append(i[-1].fitness)
+        maxs.append(i[0].fitness)
+
+    axs[1].plot(generations_num, mean, 'b+', alpha=0.7, label='mean')
+    axs[1].plot(generations_num, mins, 'rx', alpha=0.7, label='min')
+    axs[1].plot(generations_num, maxs, 'go', alpha=0.4, label='max')
+    axs[1].set_title('Result of the algorithm for hard level')
+    axs[1].legend(loc=4)
+    axs[1].set_ylabel('fitness score')
+    axs[1].set_xlabel('Generation number')
+
     plt.gca().xaxis.set_major_locator(mticker.MultipleLocator(2))
     plt.show()
 
@@ -296,21 +313,27 @@ if __name__ == '__main__':
     #     g.load_next_level()
     #     plot_all_levels(g)
 
-    g = Game(["__M_____", "___G_M___L_"])
+    g = Game(["____G_ML__G_", "___M____MGM________M_M______M____L___G____M____L__G__GM__L____ML__G___G___L___G__G___M__L___G____M__"])
     # g.load_next_level()
     # print(g.current_level_len)
     # print(g.levels[g.current_level_index])
 
     # Set these values differently to see different outcomes
-    population_size = 200
+    population_size = 50
     calc_win_score = True
     choose_bests_only = True
     one_point_crossover = True
     diff_epsilon = 0.001
     mutation_probability = 0.1
 
+    ai_agent = GeneticAlgorithm(g.levels[g.current_level_index], population_size, calc_win_score)
+    generations1, generations1mean = ai_agent.run_algorithm(choose_bests_only, one_point_crossover, diff_epsilon, mutation_probability)
 
     # ai_agent = GeneticAlgorithm(g.levels[g.current_level_index], population_size, calc_win_score)
     # ai_agent.run_algorithm(choose_bests_only, one_point_crossover, diff_epsilon, mutation_probability)
     # plot_generations(ai_agent)
 
+    g.load_next_level()
+    ai_agent = GeneticAlgorithm(g.levels[g.current_level_index], population_size, calc_win_score)
+    generations2, generations2mean = ai_agent.run_algorithm(choose_bests_only, one_point_crossover, diff_epsilon, mutation_probability)
+    plot_generations(generations1, generations1mean, generations2, generations2mean)
