@@ -34,30 +34,89 @@ class GeneticAlgorithm:
         #     print(i.actions)
 
     def evaluation(self, actions):
-        # Get an action sequence and determine the steps taken/score
-        # Return a tuple, the first one indicates if these actions result in victory
-        # and the second one shows the steps taken
         current_level = self.level
         steps = 0
         score = 0
-        for i in range(len(current_level) - 1):
-            current_step = current_level[i]
-            if current_step == '_':
-                steps += 1
-            elif current_step == 'G' and actions[i - 1] == '1':
-                steps += 1
-            elif current_step == 'L' and actions[i - 1] == '2':
-                steps += 1
+        extra_score = 0
+        not_possible = False
+        checked = []
+        checked.extend(range(0, len(actions)))
+
+        # Check the actions taken before each object
+        # if it is correct earn a point
+        for i in range(1, len(current_level) - 1):
+            if current_level[i] == 'L':
+                checked.remove(i - 1)
+                if actions[i - 1] == '2':
+                    score += 1
+                if actions[i - 1] == '1' or actions[i] == '1':
+                    score -= 1
+            elif current_level[i] == 'G':
+                checked.remove(i - 1)
+                if actions[i - 1] == '1':
+                    score += 1
+                    # After jumping it can only move to the right
+                    if actions[i] != '0':
+                        not_possible = True
+                elif i > 2:
+                    if actions[i - 2] == '1':
+                        score += 3
+                if actions[i - 1] == '2' or actions[i] == '2':
+                    score -= 1
+            elif current_level[i] == 'M':
+                # checked.remove(i)
+                if actions[i - 1] != '1':
+                    extra_score += 1
+
+        # If other actions are zero, increase score
+        # else it's not efficient so, lose score
+        for i in checked:
+            if actions[i] == '0':
+                extra_score += 1
             else:
-                break
+                extra_score -= 0.5
+
+        # Jump at the end
+        if actions[len(current_level) - 1] == '1':
+            extra_score += 2
+
+        # Check if it reaches the goal
         if self.calc_win_score:
-            if steps == len(current_level) - 1:
-                score = steps + 5
-            else:
-                score = steps
-        else:
-            score = steps
+            if score >= len(current_level) - 1:
+                score += 5
+                steps = len(current_level) - 1
+
+        score += extra_score
+        # Make sure that score is not negative
+        if score < 0 or not_possible:
+            score = 0
         return steps == len(current_level) - 1, score
+
+    # def evaluation(self, actions):
+    #     # Get an action sequence and determine the steps taken/score
+    #     # Return a tuple, the first one indicates if these actions result in victory
+    #     # and the second one shows the steps taken
+    #     current_level = self.level
+    #     steps = 0
+    #     score = 0
+    #     for i in range(len(current_level) - 1):
+    #         current_step = current_level[i]
+    #         if current_step == '_':
+    #             steps += 1
+    #         elif current_step == 'G' and actions[i - 1] == '1':
+    #             steps += 1
+    #         elif current_step == 'L' and actions[i - 1] == '2':
+    #             steps += 1
+    #         else:
+    #             break
+    #     if self.calc_win_score:
+    #         if steps == len(current_level) - 1:
+    #             score = steps + 5
+    #         else:
+    #             score = steps
+    #     else:
+    #         score = steps
+    #     return steps == len(current_level) - 1, score
 
     def evaluate_all(self):
         self.sum_fitness = 0
@@ -199,17 +258,17 @@ def plot_generations(ai_agent):
         mins.append(i[-1].fitness)
         maxs.append(i[0].fitness)
 
-    # print(generations_num)
-    # print(mean)
-    # print(mins)
-    # print(maxs)
+        # print(generations_num)
+        # print(mean)
+        # print(mins)
+        # print(maxs)
 
-    # fig, axs = plt.subplots(1, figsize=(12, 5))
+        # fig, axs = plt.subplots(1, figsize=(12, 5))
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
-    ax.plot(generations_num, mean, 'b+', alpha =0.7, label='mean')
-    ax.plot(generations_num, mins, 'rx', alpha =0.7, label='min')
-    ax.plot(generations_num, maxs, 'go', alpha =0.4, label='max')
+    ax.plot(generations_num, mean, 'b+', alpha=0.7, label='mean')
+    ax.plot(generations_num, mins, 'rx', alpha=0.7, label='min')
+    ax.plot(generations_num, maxs, 'go', alpha=0.4, label='max')
     ax.set_title('Result of the algorithm')
     ax.legend(loc=4)
     ax.set_ylabel('fitness score')
@@ -219,7 +278,16 @@ def plot_generations(ai_agent):
 
 
 if __name__ == '__main__':
-    g = Game(["____G__L__", "___G_M___L_"])
+    # Get input
+    # num = input("Please enter number of levels:\n")
+    # levels = []
+    # for i in range(num):
+    #     each_level = [input("Please your level:\n")]
+    #     levels.append(each_level)
+    #
+    # g = Game(levels)
+
+    g = Game(["__M_____", "___G_M___L_"])
     # g.load_next_level()
     # print(g.current_level_len)
     # print(g.levels[g.current_level_index])
@@ -235,6 +303,3 @@ if __name__ == '__main__':
     ai_agent = GeneticAlgorithm(g.levels[g.current_level_index], population_size, calc_win_score)
     ai_agent.run_algorithm(choose_bests_only, one_point_crossover, diff_epsilon, mutation_probability)
     plot_generations(ai_agent)
-
-
-
