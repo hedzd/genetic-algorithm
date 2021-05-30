@@ -277,15 +277,24 @@ def plot_generations(ai_agent):
     plt.show()
 
 
+def plot_all_levels(g):
+    ai_agent = GeneticAlgorithm(g.levels[g.current_level_index], population_size, calc_win_score)
+    ai_agent.run_algorithm(choose_bests_only, one_point_crossover, diff_epsilon, mutation_probability)
+    plot_generations(ai_agent)
+
+
 if __name__ == '__main__':
     # Get input
+    levels = []
     # num = input("Please enter number of levels:\n")
-    # levels = []
     # for i in range(num):
     #     each_level = [input("Please your level:\n")]
     #     levels.append(each_level)
     #
     # g = Game(levels)
+    # for i in range(levels):
+    #     g.load_next_level()
+    #     plot_all_levels(g)
 
     g = Game(["__M_____", "___G_M___L_"])
     # g.load_next_level()
@@ -293,13 +302,15 @@ if __name__ == '__main__':
     # print(g.levels[g.current_level_index])
 
     # Set these values differently to see different outcomes
-    population_size = 50
+    population_size = 200
     calc_win_score = True
     choose_bests_only = True
     one_point_crossover = True
     diff_epsilon = 0.001
     mutation_probability = 0.1
 
-    ai_agent = GeneticAlgorithm(g.levels[g.current_level_index], population_size, calc_win_score)
-    ai_agent.run_algorithm(choose_bests_only, one_point_crossover, diff_epsilon, mutation_probability)
-    plot_generations(ai_agent)
+
+    # ai_agent = GeneticAlgorithm(g.levels[g.current_level_index], population_size, calc_win_score)
+    # ai_agent.run_algorithm(choose_bests_only, one_point_crossover, diff_epsilon, mutation_probability)
+    # plot_generations(ai_agent)
+
