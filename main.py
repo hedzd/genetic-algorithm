@@ -152,9 +152,7 @@ class GeneticAlgorithm:
                 child_str1 = "".join(string1_list[:point1] + string2_list[point1:])
                 child_str2 = "".join(string2_list[:point1] + string1_list[point1:])
             else:
-                point2 = random.randint(0, len(x.actions) - 2)
-                while point2 == point1:
-                    point2 = random.randint(0, len(x.actions) - 2)
+                point2 = random.randint(point1, len(x.actions) - 2)
                 child_str1 = "".join(string1_list[:point1] + string2_list[point1:point2] + string1_list[point2:])
                 child_str2 = "".join(string2_list[:point1] + string1_list[point1:point2] + string2_list[point2:])
             # print("parent1: " + x.actions + " parent2: " + y.actions +"   "+ child_str1 + "  " + child_str2)
@@ -319,12 +317,12 @@ if __name__ == '__main__':
     # print(g.levels[g.current_level_index])
 
     # Set these values differently to see different outcomes
-    population_size = 50
-    calc_win_score = True
-    choose_bests_only = True
-    one_point_crossover = True
+    population_size = 500
+    calc_win_score = False
+    choose_bests_only = False
+    one_point_crossover = False
     diff_epsilon = 0.001
-    mutation_probability = 0.1
+    mutation_probability = 0.5
 
     ai_agent = GeneticAlgorithm(g.levels[g.current_level_index], population_size, calc_win_score)
     generations1, generations1mean = ai_agent.run_algorithm(choose_bests_only, one_point_crossover, diff_epsilon, mutation_probability)
