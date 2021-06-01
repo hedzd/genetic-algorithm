@@ -271,7 +271,7 @@ def plot_generations(generations1, generations_mean_fitness1, generations2, gene
     axs[0].legend(loc=4)
     axs[0].set_ylabel('fitness score')
     axs[0].set_xlabel('Generation number')
-    plt.gca().xaxis.set_major_locator(mticker.MultipleLocator(2))
+    axs[0].xaxis.set_major_locator(mticker.MultipleLocator(2))
     generations_num = list(range(0, len(generations2)))
     mins = []
     maxs = []
@@ -287,8 +287,8 @@ def plot_generations(generations1, generations_mean_fitness1, generations2, gene
     axs[1].legend(loc=4)
     axs[1].set_ylabel('fitness score')
     axs[1].set_xlabel('Generation number')
+    axs[1].xaxis.set_major_locator(mticker.MultipleLocator(2))
 
-    plt.gca().xaxis.set_major_locator(mticker.MultipleLocator(2))
     plt.show()
 
 
@@ -326,10 +326,6 @@ if __name__ == '__main__':
 
     ai_agent = GeneticAlgorithm(g.levels[g.current_level_index], population_size, calc_win_score)
     generations1, generations1mean = ai_agent.run_algorithm(choose_bests_only, one_point_crossover, diff_epsilon, mutation_probability)
-
-    # ai_agent = GeneticAlgorithm(g.levels[g.current_level_index], population_size, calc_win_score)
-    # ai_agent.run_algorithm(choose_bests_only, one_point_crossover, diff_epsilon, mutation_probability)
-    # plot_generations(ai_agent)
 
     g.load_next_level()
     ai_agent = GeneticAlgorithm(g.levels[g.current_level_index], population_size, calc_win_score)
